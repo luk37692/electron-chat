@@ -1,196 +1,151 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  TextField,
-  IconButton,
-  Paper,
-  Container,
-  Typography,
   AppBar,
   Toolbar,
-  Tabs,
-  Tab,
+  IconButton,
+  Typography,
+  ThemeProvider,
+  CssBaseline,
+  useMediaQuery,
 } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
-import ChatIcon from '@mui/icons-material/Chat';
-import SettingsIcon from '@mui/icons-material/Settings';
-import Settings from './Settings';
+import MenuIcon from '@mui/icons-material/Menu';
+
+import Sidebar from './components/layout/Sidebar';
+import ChatPage from './pages/ChatPage';
+import SettingsPage from './pages/SettingsPage';
+import { useSettings } from './hooks/useSettings';
+import { useChat } from './hooks/useChat';
+
+const DRAWER_WIDTH = 260;
 
 const App = () => {
-  const [messages, setMessages] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [currentTab, setCurrentTab] = useState(0);
-  const [settings, setSettings] = useState({
-    username: 'User',
-    statusMessage: '',
-    ollamaModel: 'llama3.2',
-    ollamaUrl: 'http://localhost:11434',
-    darkMode: false,
-    compactMode: false,
-    soundNotifications: true,
-    desktopNotifications: true,
-  });
-  const messagesEndRef = useRef(null);
+  const [view, setView] = useState('chat'); // 'chat' or 'settings'
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = useMediaQuery('(max-width:600px)');
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const { settings, setSettings, theme, isSettingsLoaded } = useSettings();
+  const {
+    messages,
+    setMessages,
+    inputValue,
+    setInputValue,
+    attachedFile,
+    setAttachedFile,
+    handleNewChat,
+    handleAttachFile,
+    handleSend
+  } = useChat(settings);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    // Listen for incoming messages from main process
-    const cleanup = window.electronAPI.onMessage((message) => {
-      setMessages((prev) => [...prev, { text: message, type: 'received' }]);
+    const removeMenuListener = window.electronAPI.onMenuAction((action) => {
+      if (action === 'new-chat') {
+        handleNewChat();
+      }
     });
-    
-    // Cleanup listener on unmount
-    return cleanup;
+    return removeMenuListener;
+  }, [handleNewChat]);
+
+  // Prevent default drag-drop behavior at document level (Electron navigates to dropped files by default)
+  useEffect(() => {
+    const preventDragOver = (e) => {
+      e.preventDefault();
+    };
+
+    // Only prevent drop if it's not in a valid drop zone (handled by ChatInput)
+    const preventDrop = (e) => {
+      // If the drop target is not within a designated drop zone, prevent default
+      if (!e.target.closest('[data-dropzone="true"]')) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('dragover', preventDragOver);
+    document.addEventListener('drop', preventDrop);
+
+    return () => {
+      document.removeEventListener('dragover', preventDragOver);
+      document.removeEventListener('drop', preventDrop);
+    };
   }, []);
 
-  const handleSend = () => {
-    const text = inputValue.trim();
-    if (text) {
-      // Add sent message to UI
-      setMessages((prev) => [...prev, { text, type: 'sent' }]);
-      
-      // Send to main process
-      window.electronAPI.sendMessage(text, {
-        model: settings.ollamaModel,
-        url: settings.ollamaUrl
-      });
-      
-      // Clear input
-      setInputValue('');
-    }
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+  const onNewChat = () => {
+    handleNewChat();
+    setView('chat');
+    if (isMobile) setMobileOpen(false);
   };
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-      }}
-    >
-      {/* App Bar with Tabs */}
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
-            Electron Chat
-          </Typography>
-          <Tabs
-            value={currentTab}
-            onChange={(e, newValue) => setCurrentTab(newValue)}
-            textColor="inherit"
-            indicatorColor="secondary"
-          >
-            <Tab icon={<ChatIcon />} label="Chat" />
-            <Tab icon={<SettingsIcon />} label="Settings" />
-          </Tabs>
-        </Toolbar>
-      </AppBar>
-
-      {/* Content Area */}
-      {currentTab === 0 ? (
-        <Box
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <AppBar
+          position="fixed"
           sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            backgroundColor: '#f5f5f5',
+            width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+            ml: { sm: `${DRAWER_WIDTH}px` },
+            display: { sm: 'none' }, // Hide on desktop, we have sidebar
+            bgcolor: 'background.default',
+            color: 'text.primary',
+            boxShadow: 1
           }}
         >
-          {/* Chat messages area */}
-          <Box
-        sx={{
-          flex: 1,
-          overflowY: 'auto',
-          p: 2,
-        }}
-      >
-        <Container maxWidth="md">
-          {messages.map((message, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: 'flex',
-                justifyContent: message.type === 'sent' ? 'flex-end' : 'flex-start',
-                mb: 1,
-              }}
-            >
-              <Paper
-                elevation={2}
-                sx={{
-                  p: 1.5,
-                  maxWidth: '70%',
-                  backgroundColor: message.type === 'sent' ? '#2196f3' : '#fff',
-                  color: message.type === 'sent' ? '#fff' : '#000',
-                  borderRadius: 2,
-                }}
-              >
-                <Typography variant="body1">{message.text}</Typography>
-              </Paper>
-            </Box>
-          ))}
-          <div ref={messagesEndRef} />
-        </Container>
-      </Box>
-
-      {/* Input area */}
-      <Paper
-        elevation={3}
-        sx={{
-          p: 2,
-          borderTop: '1px solid #e0e0e0',
-        }}
-      >
-        <Container maxWidth="md">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Type a message..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              size="small"
-            />
+          <Toolbar>
             <IconButton
-              color="primary"
-              onClick={handleSend}
-              disabled={!inputValue.trim()}
-              sx={{
-                backgroundColor: 'primary.main',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'primary.dark',
-                },
-                '&:disabled': {
-                  backgroundColor: '#e0e0e0',
-                  color: '#9e9e9e',
-                },
-              }}
+              color="inherit"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: 'none' } }}
             >
-              <SendIcon />
+              <MenuIcon />
             </IconButton>
-          </Box>
-        </Container>
-      </Paper>
+            <Typography variant="h6" noWrap component="div">
+              {view === 'chat' ? 'Chat' : 'Settings'}
+            </Typography>
+          </Toolbar>
+        </AppBar>
+
+        <Sidebar
+          mobileOpen={mobileOpen}
+          handleDrawerToggle={handleDrawerToggle}
+          view={view}
+          setView={setView}
+          onNewChat={onNewChat}
+        />
+
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+            pt: { xs: 7, sm: 0 }, // Add padding for mobile appbar
+            bgcolor: 'background.default'
+          }}
+        >
+          {view === 'chat' ? (
+            <ChatPage
+              messages={messages}
+              inputValue={inputValue}
+              setInputValue={setInputValue}
+              handleSend={handleSend}
+              handleAttachFile={handleAttachFile}
+              attachedFile={attachedFile}
+              setAttachedFile={setAttachedFile}
+              settings={settings}
+            />
+          ) : (
+            <SettingsPage settings={settings} onSettingsChange={setSettings} />
+          )}
         </Box>
-      ) : (
-        <Settings settings={settings} onSettingsChange={setSettings} />
-      )}
-    </Box>
+      </Box>
+    </ThemeProvider>
   );
 };
 
