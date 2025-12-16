@@ -3108,6 +3108,11 @@ parse5@^7.0.0:
   dependencies:
     entities "^6.0.0"
 
+path-browserify@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.npmjs.org/path-browserify/-/path-browserify-1.0.1.tgz"
+  integrity sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==
+
 path-exists@^4.0.0:
   version "4.0.0"
   resolved "https://registry.npmjs.org/path-exists/-/path-exists-4.0.0.tgz"
@@ -3194,6 +3199,11 @@ postcss@^8.4.33:
     nanoid "^3.3.11"
     picocolors "^1.1.1"
     source-map-js "^1.2.1"
+
+process@^0.11.10:
+  version "0.11.10"
+  resolved "https://registry.npmjs.org/process/-/process-0.11.10.tgz"
+  integrity sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==
 
 progress@^2.0.3:
   version "2.0.3"
