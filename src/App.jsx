@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   AppBar,
@@ -34,7 +34,8 @@ const App = () => {
     setAttachedFile,
     handleNewChat,
     handleAttachFile,
-    handleSend
+    handleSend,
+    isGenerating // Get isGenerating from useChat
   } = useChat(settings);
 
   useEffect(() => {
@@ -46,15 +47,13 @@ const App = () => {
     return removeMenuListener;
   }, [handleNewChat]);
 
-  // Prevent default drag-drop behavior at document level (Electron navigates to dropped files by default)
+  // Prevent default drag-drop behavior at document level
   useEffect(() => {
     const preventDragOver = (e) => {
       e.preventDefault();
     };
 
-    // Only prevent drop if it's not in a valid drop zone (handled by ChatInput)
     const preventDrop = (e) => {
-      // If the drop target is not within a designated drop zone, prevent default
       if (!e.target.closest('[data-dropzone="true"]')) {
         e.preventDefault();
       }
@@ -69,15 +68,15 @@ const App = () => {
     };
   }, []);
 
-  const handleDrawerToggle = () => {
+  const handleDrawerToggle = useCallback(() => {
     setMobileOpen(!mobileOpen);
-  };
+  }, [mobileOpen]);
 
-  const onNewChat = () => {
+  const onNewChat = useCallback(() => {
     handleNewChat();
     setView('chat');
     if (isMobile) setMobileOpen(false);
-  };
+  }, [handleNewChat, isMobile]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -88,7 +87,7 @@ const App = () => {
           sx={{
             width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
             ml: { sm: `${DRAWER_WIDTH}px` },
-            display: { sm: 'none' }, // Hide on desktop, we have sidebar
+            display: { sm: 'none' }, 
             bgcolor: 'background.default',
             color: 'text.primary',
             boxShadow: 1
@@ -125,7 +124,7 @@ const App = () => {
             display: 'flex',
             flexDirection: 'column',
             width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-            pt: { xs: 7, sm: 0 }, // Add padding for mobile appbar
+            pt: { xs: 7, sm: 0 },
             bgcolor: 'background.default'
           }}
         >
@@ -139,6 +138,8 @@ const App = () => {
               attachedFile={attachedFile}
               setAttachedFile={setAttachedFile}
               settings={settings}
+              onSettingsChange={setSettings} // Pass onSettingsChange
+              isGenerating={isGenerating} // Pass isGenerating
             />
           ) : (
             <SettingsPage settings={settings} onSettingsChange={setSettings} />

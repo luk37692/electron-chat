@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
-import { Box, Paper, Container, IconButton, TextField, Chip, Typography } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Paper, Container, IconButton, TextField, Chip, Typography, Menu, MenuItem } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import SendIcon from '@mui/icons-material/Send';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 const SUPPORTED_EXTENSIONS = ['txt', 'md', 'js', 'json', 'py', 'html', 'css', 'c', 'cpp', 'h', 'java', 'ts', 'tsx', 'jsx', 'png', 'jpg', 'jpeg', 'webp'];
+
+const DropzonePaper = styled(Paper, {
+    shouldForwardProp: (prop) => prop !== 'isDragging',
+})(({ theme, isDragging }) => ({
+    padding: '2px 4px',
+    display: 'flex',
+    alignItems: 'center',
+    borderRadius: theme.shape.borderRadius * 1.5,
+    border: isDragging ? `2px dashed ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+    backgroundColor: isDragging ? theme.palette.action.hover : theme.palette.background.paper,
+    transition: theme.transitions.create('all'),
+}));
 
 const ChatInput = ({
     inputValue,
@@ -12,20 +26,33 @@ const ChatInput = ({
     handleAttachFile,
     attachedFile,
     setAttachedFile,
-    settings
+    settings,
+    onSettingsChange
 }) => {
     const [isDragging, setIsDragging] = useState(false);
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [models, setModels] = useState([]);
+    
+    // Fetch models on mount if not available or to ensure list is fresh
+    useEffect(() => {
+        const fetchModels = async () => {
+             try {
+                const result = await window.electronAPI.fetchModels(settings.ollamaUrl || 'http://localhost:11434');
+                if (result.success) {
+                    setModels(result.models);
+                }
+             } catch (e) {
+                 console.error("Failed to fetch models for switcher", e);
+             }
+        };
+        fetchModels();
+    }, [settings.ollamaUrl]);
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSend();
         }
-    };
-
-    const isFileSupported = (filePath) => {
-        const ext = filePath.split('.').pop().toLowerCase();
-        return SUPPORTED_EXTENSIONS.includes(ext);
     };
 
     const handleDragOver = (e) => {
@@ -49,16 +76,27 @@ const ChatInput = ({
 
         if (files && files.length > 0) {
             const file = files[0];
-            // Use Electron's webUtils API (exposed via preload) to get file path
             const filePath = window.electronAPI.getPathForFile(file);
-            console.log('Dropped file:', file.name, 'Path:', filePath);
-
+            
             if (filePath) {
                 setAttachedFile(filePath);
-            } else {
-                console.warn('Could not get file path');
             }
         }
+    };
+    
+    const handleModelClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleModelClose = () => {
+        setAnchorEl(null);
+    };
+    
+    const handleModelSelect = (model) => {
+        if (onSettingsChange) {
+            onSettingsChange({ ...settings, ollamaModel: model });
+        }
+        handleModelClose();
     };
 
     return (
@@ -70,19 +108,7 @@ const ChatInput = ({
             onDrop={handleDrop}
         >
             <Container maxWidth="lg" disableGutters>
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: '2px 4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        borderRadius: 3,
-                        border: isDragging ? '2px dashed' : '1px solid',
-                        borderColor: isDragging ? 'primary.main' : 'divider',
-                        bgcolor: isDragging ? 'action.hover' : 'background.paper',
-                        transition: 'all 0.2s ease'
-                    }}
-                >
+                <DropzonePaper isDragging={isDragging} elevation={0}>
                     {isDragging ? (
                         <Box sx={{
                             flex: 1,
@@ -128,13 +154,42 @@ const ChatInput = ({
                             </IconButton>
                         </>
                     )}
-                </Paper>
-                <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', mt: 1, color: 'text.secondary' }}>
-                    Using {settings.ollamaModel} • {settings.ollamaUrl}
-                </Typography>
+                </DropzonePaper>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                    <Typography 
+                        variant="caption" 
+                        sx={{ 
+                            color: 'text.secondary', 
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            '&:hover': { color: 'primary.main' }
+                        }}
+                        onClick={handleModelClick}
+                    >
+                        Using {settings.ollamaModel || 'Loading...'} • {settings.ollamaUrl} <ExpandLessIcon sx={{ fontSize: 16, ml: 0.5 }} />
+                    </Typography>
+                    <Menu
+                        anchorEl={anchorEl}
+                        open={Boolean(anchorEl)}
+                        onClose={handleModelClose}
+                    >
+                        {models.length > 0 ? models.map((model) => (
+                            <MenuItem 
+                                key={model} 
+                                onClick={() => handleModelSelect(model)}
+                                selected={model === settings.ollamaModel}
+                            >
+                                {model}
+                            </MenuItem>
+                        )) : (
+                             <MenuItem disabled>No models found</MenuItem>
+                        )}
+                    </Menu>
+                </Box>
             </Container>
         </Box>
     );
 };
 
-export default ChatInput;
+export default React.memo(ChatInput);

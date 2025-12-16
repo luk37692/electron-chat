@@ -4,7 +4,7 @@ import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 
-const TriOptionSwitch = ({ value, onChange }) => {
+const TriOptionSwitch = React.memo(({ value, onChange }) => {
     const handleChange = (event, newValue) => {
         if (newValue !== null) {
             onChange(newValue);
@@ -43,6 +43,6 @@ const TriOptionSwitch = ({ value, onChange }) => {
             </ToggleButtonGroup>
         </Box>
     );
-};
+});
 
 export default TriOptionSwitch;

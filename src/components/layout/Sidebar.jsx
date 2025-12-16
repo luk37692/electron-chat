@@ -95,4 +95,4 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, view, setView, onNewChat }) =
     );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

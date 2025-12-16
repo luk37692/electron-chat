@@ -1,7 +1,6 @@
 const { app, BrowserWindow, ipcMain, Menu, shell, dialog, Tray, nativeImage } = require('electron/main')
 const path = require('node:path')
 const axios = require('axios')
-
 const fs = require('node:fs')
 
 const OLLAMA_URL = 'http://localhost:11434/api/chat'
@@ -40,7 +39,6 @@ let currentSettings = loadSettings()
 let tray = null
 let mainWindow = null
 
-
 async function handleMessage(event, message, options = {}) {
     const model = options.model || DEFAULT_MODEL
     const baseUrl = options.url || 'http://localhost:11434'
@@ -49,7 +47,7 @@ async function handleMessage(event, message, options = {}) {
     const payload = {
         model: model,
         messages: [{ role: 'user', content: message }],
-        stream: false
+        stream: true
     }
 
     if (options.images && options.images.length > 0) {
@@ -57,19 +55,53 @@ async function handleMessage(event, message, options = {}) {
     }
 
     try {
-        const response = await axios.post(apiUrl, payload, { timeout: 3000000 })
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
 
-        if (response.data && response.data.message) {
-            event.reply('message', response.data.message.content)
-        } else {
-            event.reply('message', 'Error: Unexpected response format from Ollama.')
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            
+            buffer = lines.pop()
+
+            for (const line of lines) {
+                if (!line.trim()) continue
+                try {
+                    const json = JSON.parse(line)
+                    if (json.message && json.message.content) {
+                        event.reply('message-chunk', json.message.content)
+                    }
+                    if (json.done) {
+                        event.reply('message-done')
+                    }
+                } catch (e) {
+                    console.error('Error parsing JSON chunk', e)
+                }
+            }
         }
     } catch (error) {
         console.error('Ollama error:', error)
         const errorMsg = error.code === 'ECONNREFUSED'
             ? `Cannot connect to Ollama at ${baseUrl}. Ensure Ollama is running.`
             : `Error: ${error.message}`
-        event.reply('message', errorMsg)
+        
+        // Fallback: send as chunk and done to display error cleanly
+        event.reply('message-chunk', errorMsg)
+        event.reply('message-done')
     }
 }
 
@@ -155,7 +187,6 @@ function createWindow() {
 }
 
 function createTray() {
-    // Create a simple 16x16 tray icon programmatically
     const icon = nativeImage.createFromDataURL(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAADjSURBVDiNpZMxDoJAEEX/Lhsb4gXsLO21tMFOG7TRA3ACOYInkBNwAU5gQ6eJRxAPoGWxlIyFrmEXXPRVM8n8N5P5M0Moj2vTdYCSpYBiBBwAK0nxM8n8TWQDCIACGAOLNMC+74uqOgVwBrBLEyzLKqnqDcAOwCWN4LpuRVUbAGoA2jFCLB4AWACqaROcc6aqNREpxuL/CNxJEREJROR7EThHKKgQEcfz/OHvBEm3CAB47QYNAEOgFhFfAKAAXkn+xk8CQQEAvwiOge+vI+L6QVCO7gBUAfQS2VT1EcfjUbMRfALaVEr1gKAQXAAAAABJRU5ErkJggg=='
     )
@@ -195,7 +226,6 @@ function createTray() {
 
     tray.setContextMenu(contextMenu)
 
-    // Double-click to show window
     tray.on('double-click', () => {
         mainWindow.show()
         mainWindow.focus()

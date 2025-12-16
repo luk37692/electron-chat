@@ -1,43 +1,77 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export const useChat = (settings) => {
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [attachedFile, setAttachedFile] = useState(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
-        const cleanup = window.electronAPI.onMessage((message) => {
-            setMessages((prev) => [...prev, { text: message, type: 'received' }]);
-
-            // Show desktop notification if enabled and window is not focused
+        // Handle full message (legacy or error fallback)
+        const cleanupMessage = window.electronAPI.onMessage((message) => {
+            setMessages((prev) => [...prev, { id: Date.now() + Math.random(), text: message, type: 'received' }]);
+            setIsGenerating(false);
+            
             if (settings?.desktopNotifications && !document.hasFocus()) {
-                // Request permission if not granted
                 if (Notification.permission === 'granted') {
                     new Notification('New Message', {
                         body: message.length > 100 ? message.substring(0, 100) + '...' : message,
-                        icon: undefined
-                    });
-                } else if (Notification.permission !== 'denied') {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            new Notification('New Message', {
-                                body: message.length > 100 ? message.substring(0, 100) + '...' : message,
-                                icon: undefined
-                            });
-                        }
                     });
                 }
             }
         });
-        return cleanup;
+
+        // Handle streaming chunks
+        const cleanupChunk = window.electronAPI.onMessageChunk((chunk) => {
+            setMessages((prev) => {
+                const lastMsg = prev[prev.length - 1];
+                if (lastMsg && lastMsg.type === 'received' && lastMsg.isStreaming) {
+                    // Update existing streaming message
+                    return [
+                        ...prev.slice(0, -1),
+                        { ...lastMsg, text: lastMsg.text + chunk }
+                    ];
+                } else {
+                    // Start new streaming message
+                    return [...prev, { 
+                        id: Date.now() + Math.random(), 
+                        text: chunk, 
+                        type: 'received',
+                        isStreaming: true 
+                    }];
+                }
+            });
+        });
+
+        // Handle stream done
+        const cleanupDone = window.electronAPI.onMessageDone(() => {
+            setIsGenerating(false);
+            setMessages(prev => {
+                const lastMsg = prev[prev.length - 1];
+                if (lastMsg && lastMsg.isStreaming) {
+                    return [
+                        ...prev.slice(0, -1),
+                        { ...lastMsg, isStreaming: false }
+                    ];
+                }
+                return prev;
+            });
+        });
+
+        return () => {
+            cleanupMessage();
+            cleanupChunk();
+            cleanupDone();
+        };
     }, [settings?.desktopNotifications]);
 
-    const handleNewChat = () => {
+    const handleNewChat = useCallback(() => {
         setMessages([]);
         setAttachedFile(null);
-    };
+        setIsGenerating(false);
+    }, []);
 
-    const handleAttachFile = async () => {
+    const handleAttachFile = useCallback(async () => {
         try {
             const filePath = await window.electronAPI.selectFile();
             if (filePath) {
@@ -46,14 +80,15 @@ export const useChat = (settings) => {
         } catch (error) {
             console.error('Error selecting file:', error);
         }
-    };
+    }, []);
 
-    const handleSend = async () => {
+    const handleSend = useCallback(async () => {
         let text = inputValue.trim();
-        if (text || attachedFile) {
+        if ((text || attachedFile) && !isGenerating) {
             setInputValue('');
             const currentAttachedFile = attachedFile;
             setAttachedFile(null);
+            setIsGenerating(true);
 
             let finalMessage = text;
 
@@ -66,10 +101,11 @@ export const useChat = (settings) => {
                     if (fileData) {
                         if (fileData.type === 'image') {
                             setMessages(prev => [...prev, {
+                                id: Date.now() + Math.random(),
                                 text: text,
                                 type: 'sent',
                                 attachment: fileName,
-                                image: fileData.content, // Base64 content
+                                image: fileData.content,
                                 mimeType: fileData.mimeType
                             }]);
 
@@ -79,8 +115,8 @@ export const useChat = (settings) => {
                                 images: [fileData.content]
                             });
                         } else {
-                            // It's text
                             setMessages(prev => [...prev, {
+                                id: Date.now() + Math.random(),
                                 text: text || "Sent a file",
                                 type: 'sent',
                                 attachment: fileName
@@ -96,22 +132,21 @@ export const useChat = (settings) => {
                     }
                 } catch (e) {
                     console.error("Failed to read file", e);
-                    // Fallback if read fails
-                    setMessages(prev => [...prev, { text: finalMessage, type: 'sent' }]);
+                    setMessages(prev => [...prev, { id: Date.now() + Math.random(), text: finalMessage, type: 'sent' }]);
                     window.electronAPI.sendMessage(finalMessage, {
                         model: settings.ollamaModel,
                         url: settings.ollamaUrl
                     });
                 }
             } else {
-                setMessages(prev => [...prev, { text: finalMessage, type: 'sent' }]);
+                setMessages(prev => [...prev, { id: Date.now() + Math.random(), text: finalMessage, type: 'sent' }]);
                 window.electronAPI.sendMessage(finalMessage, {
                     model: settings.ollamaModel,
                     url: settings.ollamaUrl
                 });
             }
         }
-    };
+    }, [inputValue, attachedFile, settings, isGenerating]);
 
     return {
         messages,
@@ -122,6 +157,7 @@ export const useChat = (settings) => {
         setAttachedFile,
         handleNewChat,
         handleAttachFile,
-        handleSend
+        handleSend,
+        isGenerating
     };
 };

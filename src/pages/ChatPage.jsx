@@ -2,10 +2,21 @@ import React from 'react';
 import MessageList from '../components/chat/MessageList';
 import ChatInput from '../components/chat/ChatInput';
 
-const ChatPage = ({ messages, inputValue, setInputValue, handleSend, handleAttachFile, attachedFile, setAttachedFile, settings }) => {
+const ChatPage = ({ 
+    messages, 
+    inputValue, 
+    setInputValue, 
+    handleSend, 
+    handleAttachFile, 
+    attachedFile, 
+    setAttachedFile, 
+    settings,
+    onSettingsChange,
+    isGenerating
+}) => {
     return (
         <>
-            <MessageList messages={messages} />
+            <MessageList messages={messages} isGenerating={isGenerating} />
             <ChatInput
                 inputValue={inputValue}
                 setInputValue={setInputValue}
@@ -14,6 +25,7 @@ const ChatPage = ({ messages, inputValue, setInputValue, handleSend, handleAttac
                 attachedFile={attachedFile}
                 setAttachedFile={setAttachedFile}
                 settings={settings}
+                onSettingsChange={onSettingsChange}
             />
         </>
     );
