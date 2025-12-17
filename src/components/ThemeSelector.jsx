@@ -3,8 +3,9 @@ import { ToggleButton, ToggleButtonGroup, Box, Typography } from '@mui/material'
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
+import AcUnitIcon from '@mui/icons-material/AcUnit';
 
-const TriOptionSwitch = React.memo(({ value, onChange }) => {
+const ThemeSelector = React.memo(({ value, onChange }) => {
     const handleChange = (event, newValue) => {
         if (newValue !== null) {
             onChange(newValue);
@@ -24,7 +25,7 @@ const TriOptionSwitch = React.memo(({ value, onChange }) => {
                     '& .MuiToggleButton-root': {
                         flex: 1,
                         textTransform: 'none',
-                        px: 2,
+                        px: 1, // Reduced padding to fit 4 items
                     }
                 }}
             >
@@ -40,9 +41,13 @@ const TriOptionSwitch = React.memo(({ value, onChange }) => {
                     <DarkModeIcon sx={{ mr: 1, fontSize: 20 }} />
                     <Typography variant="body2">Dark</Typography>
                 </ToggleButton>
+                <ToggleButton value="christmas" aria-label="christmas mode">
+                    <AcUnitIcon sx={{ mr: 1, fontSize: 20 }} />
+                    <Typography variant="body2">Xmas</Typography>
+                </ToggleButton>
             </ToggleButtonGroup>
         </Box>
     );
 });
 
-export default TriOptionSwitch;
+export default ThemeSelector;

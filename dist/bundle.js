@@ -108,25 +108,6 @@ function _setPrototypeOf(t, e) {
 
 /***/ }),
 
-/***/ "./node_modules/@babel/runtime/helpers/extends.js":
-/*!********************************************************!*\
-  !*** ./node_modules/@babel/runtime/helpers/extends.js ***!
-  \********************************************************/
-/***/ ((module) => {
-
-function _extends() {
-  return module.exports = _extends = Object.assign ? Object.assign.bind() : function (n) {
-    for (var e = 1; e < arguments.length; e++) {
-      var t = arguments[e];
-      for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]);
-    }
-    return n;
-  }, module.exports.__esModule = true, module.exports["default"] = module.exports, _extends.apply(null, arguments);
-}
-module.exports = _extends, module.exports.__esModule = true, module.exports["default"] = module.exports;
-
-/***/ }),
-
 /***/ "./node_modules/@emotion/cache/dist/emotion-cache.browser.development.esm.js":
 /*!***********************************************************************************!*\
   !*** ./node_modules/@emotion/cache/dist/emotion-cache.browser.development.esm.js ***!
@@ -1204,8 +1185,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _emotion_use_insertion_effect_with_fallbacks__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @emotion/use-insertion-effect-with-fallbacks */ "./node_modules/@emotion/use-insertion-effect-with-fallbacks/dist/emotion-use-insertion-effect-with-fallbacks.browser.esm.js");
 /* harmony import */ var _emotion_serialize__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @emotion/serialize */ "./node_modules/@emotion/serialize/dist/emotion-serialize.development.esm.js");
 /* harmony import */ var _emotion_cache__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! @emotion/cache */ "./node_modules/@emotion/cache/dist/emotion-cache.browser.development.esm.js");
-/* harmony import */ var _babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @babel/runtime/helpers/extends */ "./node_modules/@babel/runtime/helpers/extends.js");
-/* harmony import */ var _babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_6___default = /*#__PURE__*/__webpack_require__.n(_babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_6__);
+/* harmony import */ var _babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! @babel/runtime/helpers/extends */ "./node_modules/@babel/runtime/helpers/esm/extends.js");
 /* harmony import */ var _emotion_weak_memoize__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! @emotion/weak-memoize */ "./node_modules/@emotion/weak-memoize/dist/emotion-weak-memoize.esm.js");
 /* harmony import */ var hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! hoist-non-react-statics */ "./node_modules/hoist-non-react-statics/dist/hoist-non-react-statics.cjs.js");
 /* harmony import */ var hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_8___default = /*#__PURE__*/__webpack_require__.n(hoist_non_react_statics__WEBPACK_IMPORTED_MODULE_8__);
@@ -1802,7 +1782,7 @@ var ClassNames = /* #__PURE__ */(0,_emotion_element_489459f2_browser_development
   if (isBrowser && !isTestEnv) {
     // globalThis has wide browser support - https://caniuse.com/?search=globalThis, Node.js 12 and later
     var globalContext = typeof globalThis !== 'undefined' ? globalThis // eslint-disable-line no-undef
-    : isBrowser ? window : global;
+    : isBrowser ? window : __webpack_require__.g;
     var globalKey = "__EMOTION_REACT_" + pkg.version.split('.')[0] + "__";
 
     if (globalContext[globalKey]) {
@@ -2535,8 +2515,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ styled)
 /* harmony export */ });
 /* harmony import */ var _base_dist_emotion_styled_base_browser_development_esm_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../base/dist/emotion-styled-base.browser.development.esm.js */ "./node_modules/@emotion/styled/base/dist/emotion-styled-base.browser.development.esm.js");
-/* harmony import */ var _babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @babel/runtime/helpers/extends */ "./node_modules/@babel/runtime/helpers/extends.js");
-/* harmony import */ var _babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var _babel_runtime_helpers_extends__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @babel/runtime/helpers/extends */ "./node_modules/@babel/runtime/helpers/esm/extends.js");
 /* harmony import */ var _emotion_serialize__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @emotion/serialize */ "./node_modules/@emotion/serialize/dist/emotion-serialize.development.esm.js");
 /* harmony import */ var _emotion_use_insertion_effect_with_fallbacks__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! @emotion/use-insertion-effect-with-fallbacks */ "./node_modules/@emotion/use-insertion-effect-with-fallbacks/dist/emotion-use-insertion-effect-with-fallbacks.browser.esm.js");
 /* harmony import */ var _emotion_utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! @emotion/utils */ "./node_modules/@emotion/utils/dist/emotion-utils.browser.esm.js");
@@ -38771,6 +38750,7 @@ function stringify(values, options) {
   \*******************************************/
 /***/ ((module, exports, __webpack_require__) => {
 
+/* provided dependency */ var process = __webpack_require__(/*! process/browser */ "./node_modules/process/browser.js");
 /* eslint-env browser */
 
 /**
@@ -65465,6 +65445,200 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 
 /***/ }),
 
+/***/ "./node_modules/process/browser.js":
+/*!*****************************************!*\
+  !*** ./node_modules/process/browser.js ***!
+  \*****************************************/
+/***/ ((module) => {
+
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
+};
+
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+};
+
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
+
+
+/***/ }),
+
 /***/ "./node_modules/prop-types/checkPropTypes.js":
 /*!***************************************************!*\
   !*** ./node_modules/prop-types/checkPropTypes.js ***!
@@ -67961,6 +68135,7 @@ const xmlns = (0,_util_create_js__WEBPACK_IMPORTED_MODULE_0__.create)({
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
+/* provided dependency */ var process = __webpack_require__(/*! process/browser */ "./node_modules/process/browser.js");
 /**
  * @license React
  * react-dom-client.development.js
@@ -98434,7 +98609,7 @@ if (typeof window !== "undefined") {
   // eslint-disable-next-line no-restricted-globals
   windowObject = self;
 } else {
-  windowObject = global;
+  windowObject = __webpack_require__.g;
 }
 let cancelFrame = null;
 let requestFrame = null;
@@ -99172,6 +99347,7 @@ function isWidthOnlyProps(props) {
 
 "use strict";
 /* module decorator */ module = __webpack_require__.nmd(module);
+/* provided dependency */ var process = __webpack_require__(/*! process/browser */ "./node_modules/process/browser.js");
 /**
  * @license React
  * react.development.js
@@ -104657,10 +104833,10 @@ function index(value) {
 
 /***/ }),
 
-/***/ "./node_modules/unist-util-visit-parents/lib/color.node.js":
-/*!*****************************************************************!*\
-  !*** ./node_modules/unist-util-visit-parents/lib/color.node.js ***!
-  \*****************************************************************/
+/***/ "./node_modules/unist-util-visit-parents/lib/color.js":
+/*!************************************************************!*\
+  !*** ./node_modules/unist-util-visit-parents/lib/color.js ***!
+  \************************************************************/
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -104673,7 +104849,7 @@ __webpack_require__.r(__webpack_exports__);
  * @returns {string}
  */
 function color(d) {
-  return '\u001B[33m' + d + '\u001B[39m'
+  return d
 }
 
 
@@ -104694,7 +104870,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   visitParents: () => (/* binding */ visitParents)
 /* harmony export */ });
 /* harmony import */ var unist_util_is__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! unist-util-is */ "./node_modules/unist-util-is/lib/index.js");
-/* harmony import */ var unist_util_visit_parents_do_not_use_color__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! unist-util-visit-parents/do-not-use-color */ "./node_modules/unist-util-visit-parents/lib/color.node.js");
+/* harmony import */ var unist_util_visit_parents_do_not_use_color__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! unist-util-visit-parents/do-not-use-color */ "./node_modules/unist-util-visit-parents/lib/color.js");
 /**
  * @import {Node as UnistNode, Parent as UnistParent} from 'unist'
  */
@@ -105772,10 +105948,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   VFile: () => (/* binding */ VFile)
 /* harmony export */ });
 /* harmony import */ var vfile_message__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vfile-message */ "./node_modules/vfile-message/lib/index.js");
-/* harmony import */ var _minpath__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! #minpath */ "node:path");
-/* harmony import */ var _minproc__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! #minproc */ "node:process");
-/* harmony import */ var _minurl__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! #minurl */ "node:url");
-/* harmony import */ var _minurl__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! #minurl */ "./node_modules/vfile/lib/minurl.shared.js");
+/* harmony import */ var _minpath__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! #minpath */ "./node_modules/vfile/lib/minpath.browser.js");
+/* harmony import */ var _minproc__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! #minproc */ "./node_modules/vfile/lib/minproc.browser.js");
+/* harmony import */ var _minurl__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! #minurl */ "./node_modules/vfile/lib/minurl.shared.js");
+/* harmony import */ var _minurl__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! #minurl */ "./node_modules/vfile/lib/minurl.browser.js");
 /**
  * @import {Node, Point, Position} from 'unist'
  * @import {Options as MessageOptions} from 'vfile-message'
@@ -105834,7 +106010,7 @@ class VFile {
 
     if (!value) {
       options = {}
-    } else if ((0,_minurl__WEBPACK_IMPORTED_MODULE_4__.isUrl)(value)) {
+    } else if ((0,_minurl__WEBPACK_IMPORTED_MODULE_3__.isUrl)(value)) {
       options = {path: value}
     } else if (typeof value === 'string' || isUint8Array(value)) {
       options = {value}
@@ -105851,7 +106027,7 @@ class VFile {
      */
     // Prevent calling `cwd` (which could be expensive) if it’s not needed;
     // the empty string will be overridden in the next block.
-    this.cwd = 'cwd' in options ? '' : _minproc__WEBPACK_IMPORTED_MODULE_2__.cwd()
+    this.cwd = 'cwd' in options ? '' : _minproc__WEBPACK_IMPORTED_MODULE_2__.minproc.cwd()
 
     /**
      * Place to store custom info (default: `{}`).
@@ -105957,7 +106133,7 @@ class VFile {
    */
   get basename() {
     return typeof this.path === 'string'
-      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.basename(this.path)
+      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.basename(this.path)
       : undefined
   }
 
@@ -105976,7 +106152,7 @@ class VFile {
   set basename(basename) {
     assertNonEmpty(basename, 'basename')
     assertPart(basename, 'basename')
-    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.join(this.dirname || '', basename)
+    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.join(this.dirname || '', basename)
   }
 
   /**
@@ -105987,7 +106163,7 @@ class VFile {
    */
   get dirname() {
     return typeof this.path === 'string'
-      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.dirname(this.path)
+      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.dirname(this.path)
       : undefined
   }
 
@@ -106003,7 +106179,7 @@ class VFile {
    */
   set dirname(dirname) {
     assertPath(this.basename, 'dirname')
-    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.join(dirname || '', this.basename)
+    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.join(dirname || '', this.basename)
   }
 
   /**
@@ -106014,7 +106190,7 @@ class VFile {
    */
   get extname() {
     return typeof this.path === 'string'
-      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.extname(this.path)
+      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.extname(this.path)
       : undefined
   }
 
@@ -106044,7 +106220,7 @@ class VFile {
       }
     }
 
-    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.join(this.dirname, this.stem + (extname || ''))
+    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.join(this.dirname, this.stem + (extname || ''))
   }
 
   /**
@@ -106070,8 +106246,8 @@ class VFile {
    *   Nothing.
    */
   set path(path) {
-    if ((0,_minurl__WEBPACK_IMPORTED_MODULE_4__.isUrl)(path)) {
-      path = (0,_minurl__WEBPACK_IMPORTED_MODULE_3__.fileURLToPath)(path)
+    if ((0,_minurl__WEBPACK_IMPORTED_MODULE_3__.isUrl)(path)) {
+      path = (0,_minurl__WEBPACK_IMPORTED_MODULE_4__.urlToPath)(path)
     }
 
     assertNonEmpty(path, 'path')
@@ -106089,7 +106265,7 @@ class VFile {
    */
   get stem() {
     return typeof this.path === 'string'
-      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.basename(this.path, this.extname)
+      ? _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.basename(this.path, this.extname)
       : undefined
   }
 
@@ -106108,7 +106284,7 @@ class VFile {
   set stem(stem) {
     assertNonEmpty(stem, 'stem')
     assertPart(stem, 'stem')
-    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.join(this.dirname || '', stem + (this.extname || ''))
+    this.path = _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.join(this.dirname || '', stem + (this.extname || ''))
   }
 
   // Normal prototypal methods.
@@ -106364,9 +106540,9 @@ class VFile {
  *   Nothing.
  */
 function assertPart(part, name) {
-  if (part && part.includes(_minpath__WEBPACK_IMPORTED_MODULE_1__.sep)) {
+  if (part && part.includes(_minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.sep)) {
     throw new Error(
-      '`' + name + '` cannot be a path: did not expect `' + _minpath__WEBPACK_IMPORTED_MODULE_1__.sep + '`'
+      '`' + name + '` cannot be a path: did not expect `' + _minpath__WEBPACK_IMPORTED_MODULE_1__.minpath.sep + '`'
     )
   }
 }
@@ -106418,6 +106594,563 @@ function isUint8Array(value) {
       'byteLength' in value &&
       'byteOffset' in value
   )
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/vfile/lib/minpath.browser.js":
+/*!***************************************************!*\
+  !*** ./node_modules/vfile/lib/minpath.browser.js ***!
+  \***************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   minpath: () => (/* binding */ minpath)
+/* harmony export */ });
+// A derivative work based on:
+// <https://github.com/browserify/path-browserify>.
+// Which is licensed:
+//
+// MIT License
+//
+// Copyright (c) 2013 James Halliday
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+// A derivative work based on:
+//
+// Parts of that are extracted from Node’s internal `path` module:
+// <https://github.com/nodejs/node/blob/master/lib/path.js>.
+// Which is licensed:
+//
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+const minpath = {basename, dirname, extname, join, sep: '/'}
+
+/* eslint-disable max-depth, complexity */
+
+/**
+ * Get the basename from a path.
+ *
+ * @param {string} path
+ *   File path.
+ * @param {string | null | undefined} [extname]
+ *   Extension to strip.
+ * @returns {string}
+ *   Stem or basename.
+ */
+function basename(path, extname) {
+  if (extname !== undefined && typeof extname !== 'string') {
+    throw new TypeError('"ext" argument must be a string')
+  }
+
+  assertPath(path)
+  let start = 0
+  let end = -1
+  let index = path.length
+  /** @type {boolean | undefined} */
+  let seenNonSlash
+
+  if (
+    extname === undefined ||
+    extname.length === 0 ||
+    extname.length > path.length
+  ) {
+    while (index--) {
+      if (path.codePointAt(index) === 47 /* `/` */) {
+        // If we reached a path separator that was not part of a set of path
+        // separators at the end of the string, stop now.
+        if (seenNonSlash) {
+          start = index + 1
+          break
+        }
+      } else if (end < 0) {
+        // We saw the first non-path separator, mark this as the end of our
+        // path component.
+        seenNonSlash = true
+        end = index + 1
+      }
+    }
+
+    return end < 0 ? '' : path.slice(start, end)
+  }
+
+  if (extname === path) {
+    return ''
+  }
+
+  let firstNonSlashEnd = -1
+  let extnameIndex = extname.length - 1
+
+  while (index--) {
+    if (path.codePointAt(index) === 47 /* `/` */) {
+      // If we reached a path separator that was not part of a set of path
+      // separators at the end of the string, stop now.
+      if (seenNonSlash) {
+        start = index + 1
+        break
+      }
+    } else {
+      if (firstNonSlashEnd < 0) {
+        // We saw the first non-path separator, remember this index in case
+        // we need it if the extension ends up not matching.
+        seenNonSlash = true
+        firstNonSlashEnd = index + 1
+      }
+
+      if (extnameIndex > -1) {
+        // Try to match the explicit extension.
+        if (path.codePointAt(index) === extname.codePointAt(extnameIndex--)) {
+          if (extnameIndex < 0) {
+            // We matched the extension, so mark this as the end of our path
+            // component
+            end = index
+          }
+        } else {
+          // Extension does not match, so our result is the entire path
+          // component
+          extnameIndex = -1
+          end = firstNonSlashEnd
+        }
+      }
+    }
+  }
+
+  if (start === end) {
+    end = firstNonSlashEnd
+  } else if (end < 0) {
+    end = path.length
+  }
+
+  return path.slice(start, end)
+}
+
+/**
+ * Get the dirname from a path.
+ *
+ * @param {string} path
+ *   File path.
+ * @returns {string}
+ *   File path.
+ */
+function dirname(path) {
+  assertPath(path)
+
+  if (path.length === 0) {
+    return '.'
+  }
+
+  let end = -1
+  let index = path.length
+  /** @type {boolean | undefined} */
+  let unmatchedSlash
+
+  // Prefix `--` is important to not run on `0`.
+  while (--index) {
+    if (path.codePointAt(index) === 47 /* `/` */) {
+      if (unmatchedSlash) {
+        end = index
+        break
+      }
+    } else if (!unmatchedSlash) {
+      // We saw the first non-path separator
+      unmatchedSlash = true
+    }
+  }
+
+  return end < 0
+    ? path.codePointAt(0) === 47 /* `/` */
+      ? '/'
+      : '.'
+    : end === 1 && path.codePointAt(0) === 47 /* `/` */
+      ? '//'
+      : path.slice(0, end)
+}
+
+/**
+ * Get an extname from a path.
+ *
+ * @param {string} path
+ *   File path.
+ * @returns {string}
+ *   Extname.
+ */
+function extname(path) {
+  assertPath(path)
+
+  let index = path.length
+
+  let end = -1
+  let startPart = 0
+  let startDot = -1
+  // Track the state of characters (if any) we see before our first dot and
+  // after any path separator we find.
+  let preDotState = 0
+  /** @type {boolean | undefined} */
+  let unmatchedSlash
+
+  while (index--) {
+    const code = path.codePointAt(index)
+
+    if (code === 47 /* `/` */) {
+      // If we reached a path separator that was not part of a set of path
+      // separators at the end of the string, stop now.
+      if (unmatchedSlash) {
+        startPart = index + 1
+        break
+      }
+
+      continue
+    }
+
+    if (end < 0) {
+      // We saw the first non-path separator, mark this as the end of our
+      // extension.
+      unmatchedSlash = true
+      end = index + 1
+    }
+
+    if (code === 46 /* `.` */) {
+      // If this is our first dot, mark it as the start of our extension.
+      if (startDot < 0) {
+        startDot = index
+      } else if (preDotState !== 1) {
+        preDotState = 1
+      }
+    } else if (startDot > -1) {
+      // We saw a non-dot and non-path separator before our dot, so we should
+      // have a good chance at having a non-empty extension.
+      preDotState = -1
+    }
+  }
+
+  if (
+    startDot < 0 ||
+    end < 0 ||
+    // We saw a non-dot character immediately before the dot.
+    preDotState === 0 ||
+    // The (right-most) trimmed path component is exactly `..`.
+    (preDotState === 1 && startDot === end - 1 && startDot === startPart + 1)
+  ) {
+    return ''
+  }
+
+  return path.slice(startDot, end)
+}
+
+/**
+ * Join segments from a path.
+ *
+ * @param {Array<string>} segments
+ *   Path segments.
+ * @returns {string}
+ *   File path.
+ */
+function join(...segments) {
+  let index = -1
+  /** @type {string | undefined} */
+  let joined
+
+  while (++index < segments.length) {
+    assertPath(segments[index])
+
+    if (segments[index]) {
+      joined =
+        joined === undefined ? segments[index] : joined + '/' + segments[index]
+    }
+  }
+
+  return joined === undefined ? '.' : normalize(joined)
+}
+
+/**
+ * Normalize a basic file path.
+ *
+ * @param {string} path
+ *   File path.
+ * @returns {string}
+ *   File path.
+ */
+// Note: `normalize` is not exposed as `path.normalize`, so some code is
+// manually removed from it.
+function normalize(path) {
+  assertPath(path)
+
+  const absolute = path.codePointAt(0) === 47 /* `/` */
+
+  // Normalize the path according to POSIX rules.
+  let value = normalizeString(path, !absolute)
+
+  if (value.length === 0 && !absolute) {
+    value = '.'
+  }
+
+  if (value.length > 0 && path.codePointAt(path.length - 1) === 47 /* / */) {
+    value += '/'
+  }
+
+  return absolute ? '/' + value : value
+}
+
+/**
+ * Resolve `.` and `..` elements in a path with directory names.
+ *
+ * @param {string} path
+ *   File path.
+ * @param {boolean} allowAboveRoot
+ *   Whether `..` can move above root.
+ * @returns {string}
+ *   File path.
+ */
+function normalizeString(path, allowAboveRoot) {
+  let result = ''
+  let lastSegmentLength = 0
+  let lastSlash = -1
+  let dots = 0
+  let index = -1
+  /** @type {number | undefined} */
+  let code
+  /** @type {number} */
+  let lastSlashIndex
+
+  while (++index <= path.length) {
+    if (index < path.length) {
+      code = path.codePointAt(index)
+    } else if (code === 47 /* `/` */) {
+      break
+    } else {
+      code = 47 /* `/` */
+    }
+
+    if (code === 47 /* `/` */) {
+      if (lastSlash === index - 1 || dots === 1) {
+        // Empty.
+      } else if (lastSlash !== index - 1 && dots === 2) {
+        if (
+          result.length < 2 ||
+          lastSegmentLength !== 2 ||
+          result.codePointAt(result.length - 1) !== 46 /* `.` */ ||
+          result.codePointAt(result.length - 2) !== 46 /* `.` */
+        ) {
+          if (result.length > 2) {
+            lastSlashIndex = result.lastIndexOf('/')
+
+            if (lastSlashIndex !== result.length - 1) {
+              if (lastSlashIndex < 0) {
+                result = ''
+                lastSegmentLength = 0
+              } else {
+                result = result.slice(0, lastSlashIndex)
+                lastSegmentLength = result.length - 1 - result.lastIndexOf('/')
+              }
+
+              lastSlash = index
+              dots = 0
+              continue
+            }
+          } else if (result.length > 0) {
+            result = ''
+            lastSegmentLength = 0
+            lastSlash = index
+            dots = 0
+            continue
+          }
+        }
+
+        if (allowAboveRoot) {
+          result = result.length > 0 ? result + '/..' : '..'
+          lastSegmentLength = 2
+        }
+      } else {
+        if (result.length > 0) {
+          result += '/' + path.slice(lastSlash + 1, index)
+        } else {
+          result = path.slice(lastSlash + 1, index)
+        }
+
+        lastSegmentLength = index - lastSlash - 1
+      }
+
+      lastSlash = index
+      dots = 0
+    } else if (code === 46 /* `.` */ && dots > -1) {
+      dots++
+    } else {
+      dots = -1
+    }
+  }
+
+  return result
+}
+
+/**
+ * Make sure `path` is a string.
+ *
+ * @param {string} path
+ *   File path.
+ * @returns {asserts path is string}
+ *   Nothing.
+ */
+function assertPath(path) {
+  if (typeof path !== 'string') {
+    throw new TypeError(
+      'Path must be a string. Received ' + JSON.stringify(path)
+    )
+  }
+}
+
+/* eslint-enable max-depth, complexity */
+
+
+/***/ }),
+
+/***/ "./node_modules/vfile/lib/minproc.browser.js":
+/*!***************************************************!*\
+  !*** ./node_modules/vfile/lib/minproc.browser.js ***!
+  \***************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   minproc: () => (/* binding */ minproc)
+/* harmony export */ });
+// Somewhat based on:
+// <https://github.com/defunctzombie/node-process/blob/master/browser.js>.
+// But I don’t think one tiny line of code can be copyrighted. 😅
+const minproc = {cwd}
+
+function cwd() {
+  return '/'
+}
+
+
+/***/ }),
+
+/***/ "./node_modules/vfile/lib/minurl.browser.js":
+/*!**************************************************!*\
+  !*** ./node_modules/vfile/lib/minurl.browser.js ***!
+  \**************************************************/
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   isUrl: () => (/* reexport safe */ _minurl_shared_js__WEBPACK_IMPORTED_MODULE_0__.isUrl),
+/* harmony export */   urlToPath: () => (/* binding */ urlToPath)
+/* harmony export */ });
+/* harmony import */ var _minurl_shared_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./minurl.shared.js */ "./node_modules/vfile/lib/minurl.shared.js");
+
+
+
+
+// See: <https://github.com/nodejs/node/blob/6a3403c/lib/internal/url.js>
+
+/**
+ * @param {URL | string} path
+ *   File URL.
+ * @returns {string}
+ *   File URL.
+ */
+function urlToPath(path) {
+  if (typeof path === 'string') {
+    path = new URL(path)
+  } else if (!(0,_minurl_shared_js__WEBPACK_IMPORTED_MODULE_0__.isUrl)(path)) {
+    /** @type {NodeJS.ErrnoException} */
+    const error = new TypeError(
+      'The "path" argument must be of type string or an instance of URL. Received `' +
+        path +
+        '`'
+    )
+    error.code = 'ERR_INVALID_ARG_TYPE'
+    throw error
+  }
+
+  if (path.protocol !== 'file:') {
+    /** @type {NodeJS.ErrnoException} */
+    const error = new TypeError('The URL must be of scheme file')
+    error.code = 'ERR_INVALID_URL_SCHEME'
+    throw error
+  }
+
+  return getPathFromURLPosix(path)
+}
+
+/**
+ * Get a path from a POSIX URL.
+ *
+ * @param {URL} url
+ *   URL.
+ * @returns {string}
+ *   File path.
+ */
+function getPathFromURLPosix(url) {
+  if (url.hostname !== '') {
+    /** @type {NodeJS.ErrnoException} */
+    const error = new TypeError(
+      'File URL host must be "localhost" or empty on darwin'
+    )
+    error.code = 'ERR_INVALID_FILE_URL_HOST'
+    throw error
+  }
+
+  const pathname = url.pathname
+  let index = -1
+
+  while (++index < pathname.length) {
+    if (
+      pathname.codePointAt(index) === 37 /* `%` */ &&
+      pathname.codePointAt(index + 1) === 50 /* `2` */
+    ) {
+      const third = pathname.codePointAt(index + 2)
+      if (third === 70 /* `F` */ || third === 102 /* `f` */) {
+        /** @type {NodeJS.ErrnoException} */
+        const error = new TypeError(
+          'File URL path must not include encoded / characters'
+        )
+        error.code = 'ERR_INVALID_FILE_URL_PATH'
+        throw error
+      }
+    }
+  }
+
+  return decodeURIComponent(pathname)
 }
 
 
@@ -108068,39 +108801,6 @@ const getTheme = mode => (0,_mui_material_styles__WEBPACK_IMPORTED_MODULE_0__["d
   }
 });
 
-/***/ }),
-
-/***/ "node:path":
-/*!****************************!*\
-  !*** external "node:path" ***!
-  \****************************/
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:path");
-
-/***/ }),
-
-/***/ "node:process":
-/*!*******************************!*\
-  !*** external "node:process" ***!
-  \*******************************/
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:process");
-
-/***/ }),
-
-/***/ "node:url":
-/*!***************************!*\
-  !*** external "node:url" ***!
-  \***************************/
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("node:url");
-
 /***/ })
 
 /******/ 	});
@@ -108185,6 +108885,18 @@ module.exports = require("node:url");
 /******/ 				}
 /******/ 			}
 /******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/global */
+/******/ 	(() => {
+/******/ 		__webpack_require__.g = (function() {
+/******/ 			if (typeof globalThis === 'object') return globalThis;
+/******/ 			try {
+/******/ 				return this || new Function('return this')();
+/******/ 			} catch (e) {
+/******/ 				if (typeof window === 'object') return window;
+/******/ 			}
+/******/ 		})();
 /******/ 	})();
 /******/ 	
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */

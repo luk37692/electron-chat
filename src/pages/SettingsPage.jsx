@@ -19,7 +19,7 @@ import {
     CircularProgress,
     Alert,
 } from '@mui/material';
-import TriOptionSwitch from '../components/TriOptionSwitch';
+import ThemeSelector from '../components/ThemeSelector';
 
 const SettingsPage = ({ settings, onSettingsChange }) => {
     const [testResult, setTestResult] = useState(null);
@@ -172,7 +172,7 @@ const SettingsPage = ({ settings, onSettingsChange }) => {
                                 <Typography variant="body1">Theme</Typography>
                                 <Typography variant="caption" color="text.secondary">Select application appearance</Typography>
                             </Box>
-                            <TriOptionSwitch
+                            <ThemeSelector
                                 value={settings.themeMode || 'system'}
                                 onChange={(newValue) => handleTextChange('themeMode', newValue)}
                             />

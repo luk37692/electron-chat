@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
   mode: 'development',
@@ -7,7 +8,7 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
   },
-  target: 'electron-renderer',
+  target: 'web',
   module: {
     rules: [
       {
@@ -31,6 +32,15 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js', '.jsx'],
+    fallback: {
+      "path": "path-browserify",
+      "process": "process/browser",
+    }
   },
+  plugins: [
+    new webpack.ProvidePlugin({
+      process: 'process/browser',
+    }),
+  ],
   devtool: 'source-map',
 };

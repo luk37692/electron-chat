@@ -8,7 +8,7 @@ export const useSettings = () => {
         statusMessage: '',
         ollamaModel: 'llama3.2',
         ollamaUrl: 'http://localhost:11434',
-        themeMode: 'system', // 'light', 'dark', 'system'
+        themeMode: 'system', // 'light', 'dark', 'christmas', 'system'
         compactMode: false,
         soundNotifications: true,
         desktopNotifications: true,
