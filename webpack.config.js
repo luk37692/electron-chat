@@ -28,13 +28,20 @@ module.exports = {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
+      // Fix for ESM modules (mermaid, vscode-uri) that require fullySpecified resolution
+      {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
     ],
   },
   resolve: {
     extensions: ['.js', '.jsx'],
     fallback: {
-      "path": "path-browserify",
-      "process": "process/browser",
+      "path": require.resolve("path-browserify"),
+      "process": require.resolve("process/browser.js"),
     }
   },
   plugins: [

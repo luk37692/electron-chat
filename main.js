@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu, shell, dialog, Tray, nativeImage } = 
 const path = require('node:path')
 const axios = require('axios')
 const fs = require('node:fs')
+const db = require('./database')
 
 const OLLAMA_URL = 'http://localhost:11434/api/chat'
 const DEFAULT_MODEL = 'llama3.2'
@@ -75,7 +76,7 @@ async function handleMessage(event, message, options = {}) {
 
             buffer += decoder.decode(value, { stream: true })
             const lines = buffer.split('\n')
-            
+
             buffer = lines.pop()
 
             for (const line of lines) {
@@ -98,7 +99,7 @@ async function handleMessage(event, message, options = {}) {
         const errorMsg = error.code === 'ECONNREFUSED'
             ? `Cannot connect to Ollama at ${baseUrl}. Ensure Ollama is running.`
             : `Error: ${error.message}`
-        
+
         // Fallback: send as chunk and done to display error cleanly
         event.reply('message-chunk', errorMsg)
         event.reply('message-done')
@@ -240,6 +241,37 @@ app.whenReady().then(() => {
     ipcMain.handle('save-settings', (event, newSettings) => {
         currentSettings = newSettings
         return saveSettings(newSettings)
+    })
+
+    // Database handlers for conversation persistence
+    db.initDatabase()
+
+    ipcMain.handle('db-create-conversation', (event, title, model) => {
+        return db.createConversation(title, model)
+    })
+
+    ipcMain.handle('db-get-conversations', () => {
+        return db.getConversations()
+    })
+
+    ipcMain.handle('db-get-conversation', (event, id) => {
+        return db.getConversation(id)
+    })
+
+    ipcMain.handle('db-update-conversation-title', (event, id, title) => {
+        return db.updateConversationTitle(id, title)
+    })
+
+    ipcMain.handle('db-delete-conversation', (event, id) => {
+        return db.deleteConversation(id)
+    })
+
+    ipcMain.handle('db-get-messages', (event, conversationId) => {
+        return db.getMessages(conversationId)
+    })
+
+    ipcMain.handle('db-save-message', (event, conversationId, role, content, attachment, imageData, mimeType) => {
+        return db.saveMessage(conversationId, role, content, attachment, imageData, mimeType)
     })
 
     // File handling

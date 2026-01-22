@@ -1,72 +1,163 @@
 import React, { useEffect, useRef } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography, Paper, Grid } from '@mui/material';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import CodeIcon from '@mui/icons-material/Code';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import SchoolIcon from '@mui/icons-material/School';
+import CreateIcon from '@mui/icons-material/Create';
 import MessageItem from './MessageItem';
-import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
 
-const MessageList = ({ messages, isGenerating }) => {
-    const listRef = useRef(null);
+// Get greeting based on time of day
+const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+};
+
+// Suggestion cards for empty state
+const suggestions = [
+    { icon: CodeIcon, title: 'Help me code', prompt: 'Help me write a function that...', color: '#3b82f6' },
+    { icon: LightbulbIcon, title: 'Brainstorm ideas', prompt: 'Give me creative ideas for...', color: '#f59e0b' },
+    { icon: SchoolIcon, title: 'Explain a concept', prompt: 'Explain in simple terms how...', color: '#10b981' },
+    { icon: CreateIcon, title: 'Write content', prompt: 'Write a professional email about...', color: '#8b5cf6' },
+];
+
+const SuggestionCard = ({ icon: Icon, title, prompt, color, onClick }) => (
+    <Paper
+        elevation={0}
+        onClick={() => onClick(prompt)}
+        sx={{
+            p: 2,
+            cursor: 'pointer',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+                borderColor: color,
+                transform: 'translateY(-2px)',
+                boxShadow: `0 4px 12px ${color}20`,
+            },
+        }}
+    >
+        <Icon sx={{ color, mb: 1 }} />
+        <Typography variant="body2" fontWeight={500}>
+            {title}
+        </Typography>
+    </Paper>
+);
+
+// Animated typing dots component
+const TypingIndicator = () => (
+    <Box sx={{ display: 'flex', alignItems: 'center', p: 2, gap: 1 }}>
+        <Box
+            sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5,
+                bgcolor: 'background.paper',
+                px: 2,
+                py: 1.5,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+            }}
+        >
+            {[0, 1, 2].map((i) => (
+                <Box
+                    key={i}
+                    sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: 'primary.main',
+                        animation: 'typingDot 1.4s ease-in-out infinite',
+                        animationDelay: `${i * 0.2}s`,
+                    }}
+                />
+            ))}
+        </Box>
+    </Box>
+);
+
+const MessageList = ({ messages, isGenerating, onSuggestionClick }) => {
+    const scrollRef = useRef(null);
 
     // Scroll to bottom when messages change
     useEffect(() => {
-        if (listRef.current) {
-            // If isGenerating, we might want to follow the stream.
-            // But FixedSizeList with variable content size (Markdown) is tricky.
-            // Wait, FixedSizeList requires fixed size. Markdown messages vary wildly in height.
-            // The original code used FixedSizeList with itemSize={120}, which is likely WRONG/Buggy for long messages.
-            // But I should stick to the original structure if possible, OR switch to a normal map if list is small.
-            // Given it's a chat, standard map is often better unless thousands of messages.
-            // But I will keep the structure but maybe just ensure it scrolls.
-            
-            // Actually, for this task I won't rewrite the virtualization logic unless requested, 
-            // but I will add the Thinking indicator outside the list or as the last item?
-            // If I use virtualization, the thinking indicator is separate.
-            
-            listRef.current.scrollToItem(messages.length, 'end');
+        if (scrollRef.current) {
+            scrollRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages.length, messages[messages.length-1]?.text]); // Scroll on text update too
-
-    // Note: VariableSizedList is better for chat, but sticking to existing FixedSizeList for now.
-    // However, since I'm implementing "Thinking", I'll just render it below the list if using flex.
-    
-    // Better approach: Just use a standard div for the list for now if virtualization is not critical, 
-    // OR keep using AutoSizer but put the indicator below it?
-    // Let's keep the existing code structure.
-
-    const Row = ({ index, style }) => (
-        <div style={style}>
-            <MessageItem message={messages[index]} />
-        </div>
-    );
+    }, [messages.length, messages[messages.length - 1]?.text]);
 
     return (
         <Box sx={{ flex: 1, p: 1, display: 'flex', flexDirection: 'column' }}>
             {messages.length === 0 ? (
-                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', opacity: 0.5 }}>
-                    <SmartToyIcon sx={{ fontSize: 60, mb: 2, color: 'text.secondary' }} />
-                    <Typography variant="h6" color="text.secondary">Start a conversation</Typography>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        height: '100%',
+                        animation: 'fadeIn 0.5s ease-out',
+                        px: 3,
+                    }}
+                >
+                    <SmartToyIcon
+                        sx={{
+                            fontSize: 72,
+                            mb: 2,
+                            color: 'primary.main',
+                            opacity: 0.8,
+                        }}
+                    />
+                    <Typography variant="h5" fontWeight={600} sx={{ mb: 0.5 }}>
+                        {getGreeting()}! 👋
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4, textAlign: 'center' }}>
+                        What would you like to explore today?
+                    </Typography>
+
+                    {onSuggestionClick && (
+                        <Grid container spacing={2} sx={{ maxWidth: 500 }}>
+                            {suggestions.map((suggestion) => (
+                                <Grid item xs={6} key={suggestion.title}>
+                                    <SuggestionCard {...suggestion} onClick={onSuggestionClick} />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    )}
                 </Box>
             ) : (
-                <Box sx={{ flex: 1 }}>
-                     {/* 
-                       Using FixedSizeList with Markdown is definitely going to clip content.
-                       I will check if I should replace it with a simple map for better UX (Markdown heights vary).
-                       The user asked for QoL improvements. Fixing broken scrolling/clipping IS QoL.
-                       I will replace Virtualized List with a standard scrollable Box for better Markdown support.
-                     */}
-                    <Box sx={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                        {messages.map((msg) => (
-                            <MessageItem key={msg.id} message={msg} />
-                        ))}
-                        {isGenerating && !messages[messages.length - 1]?.isStreaming && (
-                             <Box sx={{ display: 'flex', alignItems: 'center', p: 2, color: 'text.secondary' }}>
-                                <CircularProgress size={20} sx={{ mr: 1 }} />
-                                <Typography variant="caption">Thinking...</Typography>
-                            </Box>
-                        )}
-                        <div ref={(el) => { if (el) el.scrollIntoView({ behavior: 'smooth' }); }} />
-                    </Box>
+                <Box
+                    sx={{
+                        flex: 1,
+                        height: '100%',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        pr: 1,
+                    }}
+                >
+                    {messages.map((msg, index) => (
+                        <Box
+                            key={msg.id}
+                            sx={{
+                                animation: 'slideUp 0.3s ease-out',
+                                animationFillMode: 'both',
+                                animationDelay: `${Math.min(index * 0.05, 0.3)}s`,
+                            }}
+                        >
+                            <MessageItem message={msg} />
+                        </Box>
+                    ))}
+                    {isGenerating && !messages[messages.length - 1]?.isStreaming && (
+                        <TypingIndicator />
+                    )}
+                    <div ref={scrollRef} />
                 </Box>
             )}
         </Box>
@@ -74,3 +165,4 @@ const MessageList = ({ messages, isGenerating }) => {
 };
 
 export default React.memo(MessageList);
+

@@ -17,11 +17,13 @@ import SettingsPage from './pages/SettingsPage';
 import { useSettings } from './hooks/useSettings';
 import { useChat } from './hooks/useChat';
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 280;
 
 const App = () => {
-  const [view, setView] = useState('chat'); // 'chat' or 'settings'
+  const [view, setView] = useState('chat');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [conversations, setConversations] = useState([]);
+  const [currentConversationId, setCurrentConversationId] = useState(null);
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const { settings, setSettings, theme, isSettingsLoaded } = useSettings();
@@ -35,17 +37,52 @@ const App = () => {
     handleNewChat,
     handleAttachFile,
     handleSend,
-    isGenerating // Get isGenerating from useChat
+    isGenerating,
+    conversationId,
+    setConversationId,
   } = useChat(settings);
+
+  // Load conversations on mount
+  useEffect(() => {
+    const loadConversations = async () => {
+      try {
+        const convs = await window.electronAPI.getConversations();
+        setConversations(convs);
+      } catch (error) {
+        console.error('Failed to load conversations:', error);
+      }
+    };
+    loadConversations();
+  }, []);
+
+  // Refresh conversations list after message changes
+  useEffect(() => {
+    const refreshConversations = async () => {
+      if (currentConversationId) {
+        try {
+          const convs = await window.electronAPI.getConversations();
+          setConversations(convs);
+        } catch (error) {
+          console.error('Failed to refresh conversations:', error);
+        }
+      }
+    };
+    refreshConversations();
+  }, [messages.length, currentConversationId]);
+
+  // Sync conversation ID with useChat
+  useEffect(() => {
+    setConversationId(currentConversationId);
+  }, [currentConversationId, setConversationId]);
 
   useEffect(() => {
     const removeMenuListener = window.electronAPI.onMenuAction((action) => {
       if (action === 'new-chat') {
-        handleNewChat();
+        handleCreateNewChat();
       }
     });
     return removeMenuListener;
-  }, [handleNewChat]);
+  }, []);
 
   // Prevent default drag-drop behavior at document level
   useEffect(() => {
@@ -72,11 +109,70 @@ const App = () => {
     setMobileOpen(!mobileOpen);
   }, [mobileOpen]);
 
-  const onNewChat = useCallback(() => {
-    handleNewChat();
-    setView('chat');
-    if (isMobile) setMobileOpen(false);
-  }, [handleNewChat, isMobile]);
+  // Create a new conversation
+  const handleCreateNewChat = useCallback(async () => {
+    try {
+      const newConv = await window.electronAPI.createConversation('New Chat', settings.ollamaModel);
+      setConversations(prev => [newConv, ...prev]);
+      setCurrentConversationId(newConv.id);
+      handleNewChat();
+      setView('chat');
+      if (isMobile) setMobileOpen(false);
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+      // Fallback to in-memory chat
+      handleNewChat();
+      setView('chat');
+      if (isMobile) setMobileOpen(false);
+    }
+  }, [handleNewChat, isMobile, settings.ollamaModel]);
+
+  // Select a conversation
+  const handleSelectConversation = useCallback(async (id) => {
+    try {
+      const messages = await window.electronAPI.getMessages(id);
+      // Convert database messages to UI format
+      const formattedMessages = messages.map(msg => ({
+        id: msg.id,
+        text: msg.content,
+        type: msg.role === 'user' ? 'sent' : 'received',
+        attachment: msg.attachment,
+        image: msg.image_data,
+        mimeType: msg.mime_type,
+      }));
+      setMessages(formattedMessages);
+      setCurrentConversationId(id);
+      setView('chat');
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+    }
+  }, [setMessages]);
+
+  // Delete a conversation
+  const handleDeleteConversation = useCallback(async (id) => {
+    try {
+      await window.electronAPI.deleteConversation(id);
+      setConversations(prev => prev.filter(c => c.id !== id));
+      if (currentConversationId === id) {
+        setCurrentConversationId(null);
+        handleNewChat();
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+    }
+  }, [currentConversationId, handleNewChat]);
+
+  // Rename a conversation
+  const handleRenameConversation = useCallback(async (id, newTitle) => {
+    try {
+      await window.electronAPI.updateConversationTitle(id, newTitle);
+      setConversations(prev => prev.map(c =>
+        c.id === id ? { ...c, title: newTitle } : c
+      ));
+    } catch (error) {
+      console.error('Failed to rename conversation:', error);
+    }
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -87,7 +183,7 @@ const App = () => {
           sx={{
             width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
             ml: { sm: `${DRAWER_WIDTH}px` },
-            display: { sm: 'none' }, 
+            display: { sm: 'none' },
             bgcolor: 'background.default',
             color: 'text.primary',
             boxShadow: 1
@@ -113,7 +209,12 @@ const App = () => {
           handleDrawerToggle={handleDrawerToggle}
           view={view}
           setView={setView}
-          onNewChat={onNewChat}
+          onNewChat={handleCreateNewChat}
+          conversations={conversations}
+          currentConversationId={currentConversationId}
+          onSelectConversation={handleSelectConversation}
+          onDeleteConversation={handleDeleteConversation}
+          onRenameConversation={handleRenameConversation}
         />
 
         <Box
@@ -138,8 +239,8 @@ const App = () => {
               attachedFile={attachedFile}
               setAttachedFile={setAttachedFile}
               settings={settings}
-              onSettingsChange={setSettings} // Pass onSettingsChange
-              isGenerating={isGenerating} // Pass isGenerating
+              onSettingsChange={setSettings}
+              isGenerating={isGenerating}
             />
           ) : (
             <SettingsPage settings={settings} onSettingsChange={setSettings} />

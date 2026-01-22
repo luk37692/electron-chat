@@ -2,7 +2,7 @@ import { createTheme } from '@mui/material/styles';
 
 export const getTheme = (mode) => {
     const paletteMode = mode === 'christmas' ? 'light' : mode;
-    
+
     const getPalette = (mode) => {
         switch (mode) {
             case 'light':
@@ -71,6 +71,7 @@ export const getTheme = (mode) => {
         },
         typography: {
             fontFamily: [
+                'Inter',
                 '-apple-system',
                 'BlinkMacSystemFont',
                 '"Segoe UI"',
@@ -79,8 +80,22 @@ export const getTheme = (mode) => {
                 'Arial',
                 'sans-serif',
             ].join(','),
+            h4: {
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+            },
+            h5: {
+                fontWeight: 600,
+                letterSpacing: '-0.01em',
+            },
             h6: {
                 fontWeight: 600,
+            },
+            body1: {
+                lineHeight: 1.6,
+            },
+            body2: {
+                lineHeight: 1.5,
             },
         },
         components: {

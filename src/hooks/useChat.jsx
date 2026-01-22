@@ -1,17 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export const useChat = (settings) => {
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [attachedFile, setAttachedFile] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [conversationId, setConversationId] = useState(null);
+
+    // Ref to track the current conversation for async operations
+    const conversationIdRef = useRef(conversationId);
+    useEffect(() => {
+        conversationIdRef.current = conversationId;
+    }, [conversationId]);
+
+    // Save message to database
+    const saveMessageToDb = useCallback(async (role, content, attachment = null, imageData = null, mimeType = null) => {
+        const currentConvId = conversationIdRef.current;
+        if (currentConvId) {
+            try {
+                await window.electronAPI.saveMessage(currentConvId, role, content, attachment, imageData, mimeType);
+            } catch (error) {
+                console.error('Failed to save message:', error);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         // Handle full message (legacy or error fallback)
         const cleanupMessage = window.electronAPI.onMessage((message) => {
             setMessages((prev) => [...prev, { id: Date.now() + Math.random(), text: message, type: 'received' }]);
             setIsGenerating(false);
-            
+
+            // Save to database
+            saveMessageToDb('assistant', message);
+
             if (settings?.desktopNotifications && !document.hasFocus()) {
                 if (Notification.permission === 'granted') {
                     new Notification('New Message', {
@@ -33,11 +55,11 @@ export const useChat = (settings) => {
                     ];
                 } else {
                     // Start new streaming message
-                    return [...prev, { 
-                        id: Date.now() + Math.random(), 
-                        text: chunk, 
+                    return [...prev, {
+                        id: Date.now() + Math.random(),
+                        text: chunk,
                         type: 'received',
-                        isStreaming: true 
+                        isStreaming: true
                     }];
                 }
             });
@@ -49,6 +71,9 @@ export const useChat = (settings) => {
             setMessages(prev => {
                 const lastMsg = prev[prev.length - 1];
                 if (lastMsg && lastMsg.isStreaming) {
+                    // Save completed message to database
+                    saveMessageToDb('assistant', lastMsg.text);
+
                     return [
                         ...prev.slice(0, -1),
                         { ...lastMsg, isStreaming: false }
@@ -63,12 +88,13 @@ export const useChat = (settings) => {
             cleanupChunk();
             cleanupDone();
         };
-    }, [settings?.desktopNotifications]);
+    }, [settings?.desktopNotifications, saveMessageToDb]);
 
     const handleNewChat = useCallback(() => {
         setMessages([]);
         setAttachedFile(null);
         setIsGenerating(false);
+        // Note: conversationId is set by App.jsx
     }, []);
 
     const handleAttachFile = useCallback(async () => {
@@ -100,14 +126,18 @@ export const useChat = (settings) => {
 
                     if (fileData) {
                         if (fileData.type === 'image') {
-                            setMessages(prev => [...prev, {
+                            const newMsg = {
                                 id: Date.now() + Math.random(),
                                 text: text,
                                 type: 'sent',
                                 attachment: fileName,
                                 image: fileData.content,
                                 mimeType: fileData.mimeType
-                            }]);
+                            };
+                            setMessages(prev => [...prev, newMsg]);
+
+                            // Save to database
+                            saveMessageToDb('user', text, fileName, fileData.content, fileData.mimeType);
 
                             window.electronAPI.sendMessage(finalMessage, {
                                 model: settings.ollamaModel,
@@ -115,12 +145,16 @@ export const useChat = (settings) => {
                                 images: [fileData.content]
                             });
                         } else {
+                            const displayText = text || "Sent a file";
                             setMessages(prev => [...prev, {
                                 id: Date.now() + Math.random(),
-                                text: text || "Sent a file",
+                                text: displayText,
                                 type: 'sent',
                                 attachment: fileName
                             }]);
+
+                            // Save to database
+                            saveMessageToDb('user', displayText, fileName);
 
                             finalMessage += `\n\n--- Content from ${fileName} ---\n${fileData.content}\n-----------------------------`;
 
@@ -133,6 +167,7 @@ export const useChat = (settings) => {
                 } catch (e) {
                     console.error("Failed to read file", e);
                     setMessages(prev => [...prev, { id: Date.now() + Math.random(), text: finalMessage, type: 'sent' }]);
+                    saveMessageToDb('user', finalMessage);
                     window.electronAPI.sendMessage(finalMessage, {
                         model: settings.ollamaModel,
                         url: settings.ollamaUrl
@@ -140,13 +175,17 @@ export const useChat = (settings) => {
                 }
             } else {
                 setMessages(prev => [...prev, { id: Date.now() + Math.random(), text: finalMessage, type: 'sent' }]);
+
+                // Save to database
+                saveMessageToDb('user', finalMessage);
+
                 window.electronAPI.sendMessage(finalMessage, {
                     model: settings.ollamaModel,
                     url: settings.ollamaUrl
                 });
             }
         }
-    }, [inputValue, attachedFile, settings, isGenerating]);
+    }, [inputValue, attachedFile, settings, isGenerating, saveMessageToDb]);
 
     return {
         messages,
@@ -158,6 +197,8 @@ export const useChat = (settings) => {
         handleNewChat,
         handleAttachFile,
         handleSend,
-        isGenerating
+        isGenerating,
+        conversationId,
+        setConversationId,
     };
 };
