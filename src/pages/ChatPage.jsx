@@ -12,7 +12,8 @@ const ChatPage = ({
     setAttachedFile,
     settings,
     onSettingsChange,
-    isGenerating
+    isGenerating,
+    onStopGeneration
 }) => {
     // Handle suggestion card clicks from empty state
     const handleSuggestionClick = (prompt) => {
@@ -35,6 +36,8 @@ const ChatPage = ({
                 setAttachedFile={setAttachedFile}
                 settings={settings}
                 onSettingsChange={onSettingsChange}
+                isGenerating={isGenerating}
+                onStopGeneration={onStopGeneration}
             />
         </>
     );

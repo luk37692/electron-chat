@@ -3,6 +3,7 @@ import { Box, Paper, Container, IconButton, TextField, Chip, Typography, Menu, M
 import { styled, keyframes } from '@mui/material/styles';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import SendIcon from '@mui/icons-material/Send';
+import StopIcon from '@mui/icons-material/Stop';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import KeyboardIcon from '@mui/icons-material/Keyboard';
 
@@ -56,6 +57,24 @@ const SendButton = styled(IconButton, {
     }),
 }));
 
+const StopButton = styled(IconButton)(({ theme }) => ({
+    padding: theme.spacing(1),
+    marginLeft: theme.spacing(0.5),
+    backgroundColor: theme.palette.error.main,
+    color: theme.palette.error.contrastText,
+    borderRadius: theme.shape.borderRadius * 1.5,
+    transition: theme.transitions.create(['background-color', 'transform'], {
+        duration: 200,
+    }),
+    '&:hover': {
+        backgroundColor: theme.palette.error.dark,
+        transform: 'scale(1.05)',
+    },
+    '&:active': {
+        transform: 'scale(0.95)',
+    },
+}));
+
 const ChatInput = ({
     inputValue,
     setInputValue,
@@ -64,7 +83,9 @@ const ChatInput = ({
     attachedFile,
     setAttachedFile,
     settings,
-    onSettingsChange
+    onSettingsChange,
+    isGenerating,
+    onStopGeneration
 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
@@ -94,12 +115,17 @@ const ChatInput = ({
             // Ctrl/Cmd + Enter to send
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                 e.preventDefault();
-                if (isReady) handleSend();
+                if (isReady && !isGenerating) handleSend();
+            }
+            // Escape to stop generation
+            if (e.key === 'Escape' && isGenerating && onStopGeneration) {
+                e.preventDefault();
+                onStopGeneration();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isReady, handleSend]);
+    }, [isReady, handleSend, isGenerating, onStopGeneration]);
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -221,19 +247,31 @@ const ChatInput = ({
                                 multiline
                                 maxRows={6}
                                 autoFocus
+                                disabled={isGenerating}
                             />
-                            <Tooltip title={isReady ? "Send message (Enter)" : "Type a message to send"}>
-                                <span>
-                                    <SendButton
-                                        isReady={isReady}
-                                        onClick={handleSend}
-                                        disabled={!isReady}
-                                        aria-label="Send message"
+                            {isGenerating ? (
+                                <Tooltip title="Stop generating (Esc)">
+                                    <StopButton
+                                        onClick={onStopGeneration}
+                                        aria-label="Stop generating"
                                     >
-                                        <SendIcon fontSize="small" />
-                                    </SendButton>
-                                </span>
-                            </Tooltip>
+                                        <StopIcon fontSize="small" />
+                                    </StopButton>
+                                </Tooltip>
+                            ) : (
+                                <Tooltip title={isReady ? "Send message (Enter)" : "Type a message to send"}>
+                                    <span>
+                                        <SendButton
+                                            isReady={isReady}
+                                            onClick={handleSend}
+                                            disabled={!isReady}
+                                            aria-label="Send message"
+                                        >
+                                            <SendIcon fontSize="small" />
+                                        </SendButton>
+                                    </span>
+                                </Tooltip>
+                            )}
                         </>
                     )}
                 </DropzonePaper>

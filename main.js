@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, shell, dialog, Tray, nativeImage } = require('electron/main')
+const { app, BrowserWindow, ipcMain, Menu, shell, dialog, Tray, nativeImage, Notification } = require('electron/main')
 const path = require('node:path')
 const axios = require('axios')
 const fs = require('node:fs')
@@ -39,11 +39,18 @@ function saveSettings(settings) {
 let currentSettings = loadSettings()
 let tray = null
 let mainWindow = null
+let currentAbortController = null
 
 async function handleMessage(event, message, options = {}) {
+    // Abort any ongoing request
+    if (currentAbortController) {
+        currentAbortController.abort()
+    }
+    currentAbortController = new AbortController()
     const model = options.model || DEFAULT_MODEL
     const baseUrl = options.url || 'http://localhost:11434'
     const apiUrl = `${baseUrl.replace(/\/$/, '')}/api/chat`
+    const conversationId = options.conversationId || null
 
     const payload = {
         model: model,
@@ -59,7 +66,8 @@ async function handleMessage(event, message, options = {}) {
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: currentAbortController.signal
         })
 
         if (!response.ok) {
@@ -84,10 +92,26 @@ async function handleMessage(event, message, options = {}) {
                 try {
                     const json = JSON.parse(line)
                     if (json.message && json.message.content) {
-                        event.reply('message-chunk', json.message.content)
+                        event.reply('message-chunk', json.message.content, conversationId)
                     }
                     if (json.done) {
-                        event.reply('message-done')
+                        event.reply('message-done', conversationId)
+                        // Show desktop notification when AI finishes responding
+                        if (Notification.isSupported() && !mainWindow?.isFocused()) {
+                            const notification = new Notification({
+                                title: 'Ollama Chat',
+                                body: 'AI response completed',
+                                icon: nativeImage.createFromPath(path.join(__dirname, 'icon.png')),
+                                silent: false
+                            })
+                            notification.on('click', () => {
+                                if (mainWindow) {
+                                    mainWindow.show()
+                                    mainWindow.focus()
+                                }
+                            })
+                            notification.show()
+                        }
                     }
                 } catch (e) {
                     console.error('Error parsing JSON chunk', e)
@@ -95,14 +119,68 @@ async function handleMessage(event, message, options = {}) {
             }
         }
     } catch (error) {
+        if (error.name === 'AbortError') {
+            // Request was aborted, just signal done
+            event.reply('message-done', conversationId)
+            return
+        }
         console.error('Ollama error:', error)
         const errorMsg = error.code === 'ECONNREFUSED'
             ? `Cannot connect to Ollama at ${baseUrl}. Ensure Ollama is running.`
             : `Error: ${error.message}`
 
         // Fallback: send as chunk and done to display error cleanly
-        event.reply('message-chunk', errorMsg)
-        event.reply('message-done')
+        event.reply('message-chunk', errorMsg, conversationId)
+        event.reply('message-done', conversationId)
+    } finally {
+        currentAbortController = null
+    }
+}
+
+function handleStopGeneration() {
+    if (currentAbortController) {
+        currentAbortController.abort()
+        currentAbortController = null
+    }
+}
+
+async function handleGenerateTitle(event, userMessage, assistantMessage, options = {}) {
+    const model = options.model || DEFAULT_MODEL
+    const baseUrl = options.url || 'http://localhost:11434'
+    const apiUrl = `${baseUrl.replace(/\/$/, '')}/api/chat`
+
+    const prompt = `Based on this conversation, generate a very short title (max 6 words) that summarizes the topic. Only respond with the title, nothing else.
+
+User: ${userMessage.substring(0, 500)}
+Assistant: ${assistantMessage.substring(0, 500)}`
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: model,
+                messages: [{ role: 'user', content: prompt }],
+                stream: false
+            })
+        })
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        if (data.message && data.message.content) {
+            // Clean up the title - remove quotes, trim, etc.
+            let title = data.message.content.trim()
+            title = title.replace(/^["']|["']$/g, '') // Remove surrounding quotes
+            title = title.substring(0, 60) // Limit length
+            return { success: true, title }
+        }
+        return { success: false, error: 'No title generated' }
+    } catch (error) {
+        console.error('Generate title error:', error)
+        return { success: false, error: error.message }
     }
 }
 
@@ -235,6 +313,8 @@ function createTray() {
 
 app.whenReady().then(() => {
     ipcMain.on('message', handleMessage)
+    ipcMain.on('stop-generation', handleStopGeneration)
+    ipcMain.handle('generate-title', handleGenerateTitle)
     ipcMain.handle('test-connection', handleTestConnection)
     ipcMain.handle('fetch-models', handleFetchModels)
     ipcMain.handle('get-settings', () => currentSettings)

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
     sendMessage: (message, options) => ipcRenderer.send('message', message, options),
+    stopGeneration: () => ipcRenderer.send('stop-generation'),
 
     onMessage: (callback) => {
         const subscription = (_event, value) => callback(value);
@@ -10,17 +11,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     onMessageChunk: (callback) => {
-        const subscription = (_event, value) => callback(value);
+        const subscription = (_event, chunk, conversationId) => callback(chunk, conversationId);
         ipcRenderer.on('message-chunk', subscription);
         return () => ipcRenderer.removeListener('message-chunk', subscription);
     },
 
     onMessageDone: (callback) => {
-        const subscription = (_event) => callback();
+        const subscription = (_event, conversationId) => callback(conversationId);
         ipcRenderer.on('message-done', subscription);
         return () => ipcRenderer.removeListener('message-done', subscription);
     },
 
+    generateTitle: (userMessage, assistantMessage, options) => 
+        ipcRenderer.invoke('generate-title', userMessage, assistantMessage, options),
     testConnection: (url) => ipcRenderer.invoke('test-connection', url),
     fetchModels: (url) => ipcRenderer.invoke('fetch-models', url),
     getSettings: () => ipcRenderer.invoke('get-settings'),

@@ -14,34 +14,77 @@ mermaid.initialize({
 
 let mermaidId = 0;
 
+// Simple check if mermaid code looks complete
+const isLikelyComplete = (code) => {
+    if (!code || code.length < 10) return false;
+    const trimmed = code.trim();
+    // Check for common incomplete patterns
+    if (trimmed.endsWith('-->') || trimmed.endsWith('-->|')) return false;
+    if (trimmed.endsWith('[') || trimmed.endsWith('(') || trimmed.endsWith('{')) return false;
+    // Check for unclosed brackets in the last line
+    const lines = trimmed.split('\n');
+    const lastLine = lines[lines.length - 1];
+    const openBrackets = (lastLine.match(/\[/g) || []).length;
+    const closeBrackets = (lastLine.match(/\]/g) || []).length;
+    if (openBrackets > closeBrackets) return false;
+    return true;
+};
+
 const MermaidBlock = ({ code }) => {
     const containerRef = useRef(null);
     const [svg, setSvg] = useState('');
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
+    const debounceRef = useRef(null);
+    const lastSuccessfulCode = useRef('');
 
     useEffect(() => {
+        // Clear any pending render
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         const renderDiagram = async () => {
             if (!code) return;
+
+            const cleanCode = String(code).trim();
+            
+            // Skip rendering if code looks incomplete
+            if (!isLikelyComplete(cleanCode)) {
+                // Keep showing loading state for incomplete diagrams
+                if (!svg) setLoading(true);
+                return;
+            }
 
             setLoading(true);
             setError(null);
 
             try {
                 const id = `mermaid-${mermaidId++}`;
-                const cleanCode = String(code).trim();
-                const { svg } = await mermaid.render(id, cleanCode);
-                setSvg(svg);
+                const { svg: renderedSvg } = await mermaid.render(id, cleanCode);
+                setSvg(renderedSvg);
+                lastSuccessfulCode.current = cleanCode;
             } catch (err) {
-                console.error('Mermaid rendering error:', err);
-                setError(err.message || 'Failed to render diagram');
+                // Only show error if we don't have a previous successful render
+                // and the code looks complete
+                if (!lastSuccessfulCode.current) {
+                    setError(err.message || 'Failed to render diagram');
+                }
+                // Otherwise keep showing the last successful render
             } finally {
                 setLoading(false);
             }
         };
 
-        renderDiagram();
+        // Debounce rendering to avoid rapid re-renders during streaming
+        debounceRef.current = setTimeout(renderDiagram, 300);
+
+        return () => {
+            if (debounceRef.current) {
+                clearTimeout(debounceRef.current);
+            }
+        };
     }, [code]);
 
     const handleCopy = (e) => {

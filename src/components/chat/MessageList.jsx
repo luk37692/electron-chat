@@ -92,7 +92,7 @@ const MessageList = ({ messages, isGenerating, onSuggestionClick }) => {
     }, [messages.length, messages[messages.length - 1]?.text]);
 
     return (
-        <Box sx={{ flex: 1, p: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, p: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
             {messages.length === 0 ? (
                 <Box
                     sx={{

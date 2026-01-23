@@ -27,6 +27,14 @@ const App = () => {
   const isMobile = useMediaQuery('(max-width:600px)');
 
   const { settings, setSettings, theme, isSettingsLoaded } = useSettings();
+
+  // Callback to update conversation title when AI generates one
+  const handleTitleGenerated = useCallback((convId, newTitle) => {
+    setConversations(prev => prev.map(c =>
+      c.id === convId ? { ...c, title: newTitle } : c
+    ));
+  }, []);
+
   const {
     messages,
     setMessages,
@@ -36,11 +44,32 @@ const App = () => {
     setAttachedFile,
     handleNewChat,
     handleAttachFile,
-    handleSend,
+    handleSend: originalHandleSend,
+    handleStopGeneration,
     isGenerating,
     conversationId,
     setConversationId,
-  } = useChat(settings);
+  } = useChat(settings, handleTitleGenerated);
+
+  // Wrap handleSend to auto-create conversation if needed
+  const handleSend = useCallback(async () => {
+    // If no conversation exists, create one first
+    if (!currentConversationId && (inputValue.trim() || attachedFile)) {
+      try {
+        const newConv = await window.electronAPI.createConversation('New Chat', settings.ollamaModel);
+        setConversations(prev => [newConv, ...prev]);
+        setCurrentConversationId(newConv.id);
+        // Wait a tick for state to update, then send
+        setTimeout(() => {
+          originalHandleSend();
+        }, 0);
+        return;
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+      }
+    }
+    originalHandleSend();
+  }, [currentConversationId, inputValue, attachedFile, settings.ollamaModel, originalHandleSend]);
 
   // Load conversations on mount
   useEffect(() => {
@@ -241,6 +270,7 @@ const App = () => {
               settings={settings}
               onSettingsChange={setSettings}
               isGenerating={isGenerating}
+              onStopGeneration={handleStopGeneration}
             />
           ) : (
             <SettingsPage settings={settings} onSettingsChange={setSettings} />

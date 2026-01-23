@@ -140,12 +140,7 @@ function saveMessage(conversationId, role, content, attachment = null, imageData
     // Update conversation's updated_at timestamp
     db.prepare(`UPDATE conversations SET updated_at = datetime('now') WHERE id = ?`).run(conversationId);
 
-    // Auto-update conversation title from first user message
-    const conv = getConversation(conversationId);
-    if (conv && conv.title === 'New Chat' && role === 'user') {
-        const newTitle = content.substring(0, 50) + (content.length > 50 ? '...' : '');
-        updateConversationTitle(conversationId, newTitle);
-    }
+    // Title generation is now handled by AI after the first assistant response
 
     return { id, conversation_id: conversationId, role, content, created_at: new Date().toISOString() };
 }

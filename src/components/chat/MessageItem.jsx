@@ -21,9 +21,9 @@ import 'katex/dist/katex.min.css';
 const preprocessLatex = (text) => {
     if (!text) return text;
     // Convert \[ ... \] to $$ ... $$ (display math)
-    let result = text.replace(/\\\[([\\s\\S]*?)\\\]/g, (_, math) => `$$${math}$$`);
+    let result = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, math) => `$$${math}$$`);
     // Convert \( ... \) to $ ... $ (inline math)
-    result = result.replace(/\\\(([\\s\\S]*?)\\\)/g, (_, math) => `$${math}$`);
+    result = result.replace(/\\\(([\s\S]*?)\\\)/g, (_, math) => `$${math}$`);
     return result;
 };
 
